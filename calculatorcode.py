@@ -1,5 +1,6 @@
 from collections import Counter
 import itertools
+import math
 
 def calculate_dice_probability(targets):
     def verify_targets(targets):
@@ -41,7 +42,7 @@ def calculate_dice_probability(targets):
                 total_prob += prob
             
         return total_prob
-
+    
     initial_state = Counter()
     probability = calculate_specific_path(initial_state, targets, 3)
     
@@ -68,10 +69,20 @@ def run_probability_calculation():
             if isinstance(prob, str):
                 print(f"\n{prob}")
             else:
-                percentage = prob * 100
-                print(f"\nProbability: {prob:.6f}")
-                print(f"Percentage: {percentage:.4f}%")
-                print(f"Approximately 1 in {int(1/prob)} attempts")
+                # Prevent extremely low probabilities from showing as 1 in infinite
+                if prob > 0:
+                    percentage = prob * 100
+                    rounded_prob = round(prob, 6)
+                    rounded_percentage = round(percentage, 4)
+                    
+                    # Calculate attempts with rounding to prevent integer overflow
+                    attempts = max(1, round(1 / prob))
+                    
+                    print(f"\nProbability: {rounded_prob}")
+                    print(f"Percentage: {rounded_percentage}%")
+                    print(f"Approximately 1 in {attempts} attempts")
+                else:
+                    print("\nProbability is effectively zero.")
         
         except ValueError:
             print("\nInvalid input format. Please use 'number count, number count' format.")
