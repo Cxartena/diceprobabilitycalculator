@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dice Probability Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dice Probability Calculator</h1>
+        <p>Calculate the probability of rolling specific dice combinations in 3 attempts of 5 dice.</p>
+        
+        <p>Format: number count, number count, etc.</p>
+        <p>Examples:</p>
+        <ul>
+            <li>'3 3' for three 3s</li>
+            <li>'6 5' for five 6s</li>
+            <li>'6 2, 5 2' for two 6s and two 5s</li>
+        </ul>
+
+        <input type="text" id="targets" placeholder="Enter targets (e.g., 3 3)">
+        <button onclick="calculateProbability()">Calculate</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function calculateDiceProbability(targets) {
+            function verifyTargets(targets) {
+                const totalDice = Object.values(targets).reduce((a, b) => a + b, 0);
+                return totalDice <= 5 && 
+                    Object.keys(targets).every(num => 
+                        num >= 1 && num <= 6 && targets[num] >= 0
+                    );
+            }
+
+            if (!verifyTargets(targets)) {
+                return "Invalid targets. Cannot exceed 5 dice total and numbers must be between 1-6";
+            }
+
+            function calculateSpecificPath(currentState, neededState, attemptsLeft) {
+                if (attemptsLeft === 0) return 0;
+
+                const success = Object.keys(neededState).every(
+                    num => (currentState[num] || 0) >= neededState[num]
+                );
+                if (success) return 1;
+
+                const remainingDice = 5 - Object.values(currentState).reduce((a, b) => a + b, 0);
+                if (remainingDice === 0) return 0;
+
+                let totalProb = 0;
+                for (let rollResult = 1; rollResult <= 6; rollResult++) {
+                    const newState = {...currentState};
+                    if (neededState[rollResult]) {
+                        if ((newState[rollResult] || 0) < neededState[rollResult]) {
+                            newState[rollResult] = (newState[rollResult] || 0) + 1;
+                            const prob = (1/6) * calculateSpecificPath(newState, neededState, attemptsLeft - 1);
+                            totalProb += prob;
+                        }
+                    } else {
+                        newState[rollResult] = (newState[rollResult] || 0) + 1;
+                        const prob = (1/6) * calculateSpecificPath(newState, neededState, attemptsLeft - 1);
+                        totalProb += prob;
+                    }
+                }
+                return totalProb;
+            }
+
+            const probability = calculateSpecificPath({}, targets, 3);
+            return probability;
+        }
+
+        function calculateProbability() {
+            const input = document.getElementById('targets').value;
+            const resultDiv = document.getElementById('result');
+
+            try {
+                const targets = {};
+                input.split(',').forEach(part => {
+                    const [num, count] = part.trim().split(' ').map(Number);
+                    targets[num] = count;
+                });
+
+                const prob = calculateDiceProbability(targets);
+                
+                if (typeof prob === 'string') {
+                    resultDiv.innerHTML = `<p>${prob}</p>`;
+                } else {
+                    const percentage = prob * 100;
+                    resultDiv.innerHTML = `
+                        <p>Probability: ${prob.toFixed(6)}</p>
+                        <p>Percentage: ${percentage.toFixed(4)}%</p>
+                        <p>Approximately 1 in ${Math.round(1/prob)} attempts</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p>Invalid input format. Please use "number count, number count" format.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
