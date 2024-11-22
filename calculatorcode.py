@@ -14,37 +14,57 @@ def calculate_dice_probability(targets):
     if not verify_targets(targets):
         return "Invalid targets. Cannot exceed 5 dice total and numbers must be between 1-6"
     
-    # Generate all possible 3-roll combinations
-    all_rolls = list(product(range(1, 7), repeat=3))
+    total_dice_needed = sum(targets.values())
+    dice_per_roll = min(5, total_dice_needed)
     
-    # Track successful rolls
-    successful_rolls = 0
-    total_rolls = len(all_rolls)
+    # Generate all possible combinations for each roll (5 dice at once)
+    all_rolls = list(product(range(1, 7), repeat=dice_per_roll))
+    total_combinations = len(all_rolls) ** 3  # Three attempts
+    successful_combinations = 0
     
-    for roll_combination in all_rolls:
-        # Track the current state of dice after each roll
-        current_dice = []
-        current_targets = targets.copy()
+    # Try all possible combinations of three rolls
+    for roll1 in all_rolls:
+        counter1 = Counter(roll1)
+        remaining_targets = targets.copy()
         
-        for roll in roll_combination:
-            # If we've already met all targets, stop rolling
-            if all(current_targets.get(num, 0) <= 0 for num in current_targets):
-                break
-            
-            # Add the current roll to our dice
-            current_dice.append(roll)
-            
-            # Update targets
-            if roll in current_targets and current_targets[roll] > 0:
-                current_targets[roll] -= 1
+        # Update remaining targets after first roll
+        for num, count in counter1.items():
+            if num in remaining_targets:
+                remaining_targets[num] = max(0, remaining_targets[num] - count)
         
-        # Check if we've met all targets
-        if all(count <= 0 for count in current_targets.values()):
-            successful_rolls += 1
+        # If we've met all targets, count this as success
+        if all(count == 0 for count in remaining_targets.values()):
+            successful_combinations += len(all_rolls) * len(all_rolls)
+            continue
+            
+        for roll2 in all_rolls:
+            counter2 = Counter(roll2)
+            remaining_targets2 = remaining_targets.copy()
+            
+            # Update remaining targets after second roll
+            for num, count in counter2.items():
+                if num in remaining_targets2:
+                    remaining_targets2[num] = max(0, remaining_targets2[num] - count)
+            
+            # If we've met all targets, count this as success
+            if all(count == 0 for count in remaining_targets2.values()):
+                successful_combinations += len(all_rolls)
+                continue
+                
+            for roll3 in all_rolls:
+                counter3 = Counter(roll3)
+                remaining_targets3 = remaining_targets2.copy()
+                
+                # Update remaining targets after third roll
+                for num, count in counter3.items():
+                    if num in remaining_targets3:
+                        remaining_targets3[num] = max(0, remaining_targets3[num] - count)
+                
+                # If we've met all targets after three rolls, count this as success
+                if all(count == 0 for count in remaining_targets3.values()):
+                    successful_combinations += 1
     
-    # Calculate probability
-    probability = successful_rolls / total_rolls
-    
+    probability = successful_combinations / total_combinations
     return probability
 
 def run_probability_calculation():
@@ -72,12 +92,13 @@ def run_probability_calculation():
                 rounded_prob = round(prob, 6)
                 rounded_percentage = round(percentage, 4)
                 
-                # Calculate attempts with rounding to prevent integer overflow
-                attempts = max(1, round(1 / prob)) if prob > 0 else float('inf')
-                
-                print(f"\nProbability: {rounded_prob}")
-                print(f"Percentage: {rounded_percentage}%")
-                print(f"Approximately 1 in {attempts} attempts")
+                if prob > 0:
+                    attempts = max(1, round(1 / prob))
+                    print(f"\nProbability: {rounded_prob}")
+                    print(f"Percentage: {rounded_percentage}%")
+                    print(f"Approximately 1 in {attempts} attempts")
+                else:
+                    print("\nProbability is effectively zero.")
         
         except ValueError:
             print("\nInvalid input format. Please use 'number count, number count' format.")
